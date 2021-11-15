@@ -1,0 +1,61 @@
+http:
+  port: 8080
+admin:
+  port: 9876
+  host: localhost
+apiEndpoints:
+  # see: http://www.express-gateway.io/docs/configuration/gateway.config.yml/apiEndpoints
+    auth:
+      path: '/auth*'
+      methods: ['POST']
+    products:
+      path: '/products*' 
+      methods: ['POST','GET','PUT', 'DELETE'] 
+serviceEndpoints:
+  # see: http://www.express-gateway.io/docs/configuration/gateway.config.yml/serviceEndpoints
+    auth:
+      url: 'http://localhost:8082'
+    products:
+      url: 'http://localhost:8081'  
+policies:
+  - log
+  - proxy
+  - jwt
+  - request-transformer
+pipelines:
+  # see: https://www.express-gateway.io/docs/configuration/gateway.config.yml/pipelines
+    authPipeline:
+      apiEndpoints:
+        - auth
+      policies:
+        -
+          log:
+            action:
+              message: 'auth ${req.method}'
+        -
+          proxy:
+            action:
+              serviceEndpoint: auth
+    productsPipeline:
+      apiEndpoints:
+        - products
+      policies:
+        -
+          log:
+            action:
+              message: 'products ${req.method}'
+        -
+          jwt:
+            action:
+              secret: 'wow'
+              checkCredentialExistence: false
+        -
+          request-transformer:
+            action:
+              body:
+                add:
+                  user: req.user
+        -
+          proxy:
+            action:
+              serviceEndpoint: products
